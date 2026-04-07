@@ -43,6 +43,7 @@ export interface ContainerInput {
   isScheduledTask?: boolean;
   assistantName?: string;
   script?: string;
+  allowedSendTargets?: string[]; // JIDs this container can send messages to via notify_owner
 }
 
 export interface ContainerOutput {
@@ -246,6 +247,12 @@ async function buildContainerArgs(
       { containerName },
       'OneCLI gateway not reachable — container will have no credentials',
     );
+  }
+
+  // If an OAuth token is available, inject it so Claude Code uses subscription
+  // auth instead of the API key placeholder set by OneCLI.
+  if (process.env.CLAUDE_CODE_OAUTH_TOKEN) {
+    args.push('-e', `CLAUDE_CODE_OAUTH_TOKEN=${process.env.CLAUDE_CODE_OAUTH_TOKEN}`);
   }
 
   // Runtime-specific args for host gateway resolution

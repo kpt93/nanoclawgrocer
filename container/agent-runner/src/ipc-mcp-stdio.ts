@@ -19,6 +19,9 @@ const TASKS_DIR = path.join(IPC_DIR, 'tasks');
 const chatJid = process.env.NANOCLAW_CHAT_JID!;
 const groupFolder = process.env.NANOCLAW_GROUP_FOLDER!;
 const isMain = process.env.NANOCLAW_IS_MAIN === '1';
+const allowedSendTargets = (process.env.NANOCLAW_ALLOWED_SEND_TARGETS || '')
+  .split(',')
+  .filter(Boolean);
 
 function writeIpcFile(dir: string, data: object): string {
   fs.mkdirSync(dir, { recursive: true });
@@ -44,6 +47,12 @@ server.tool(
   "Send a message to the user or group immediately while you're still running. Use this for progress updates or to send multiple messages. You can call this multiple times.",
   {
     text: z.string().describe('The message text to send'),
+    jid: z
+      .string()
+      .optional()
+      .describe(
+        'Target chat JID. Defaults to this group\'s own chat. Use to send to another authorized group (e.g. the main channel).',
+      ),
     sender: z
       .string()
       .optional()
@@ -52,9 +61,10 @@ server.tool(
       ),
   },
   async (args) => {
+    const targetJid = args.jid || chatJid;
     const data: Record<string, string | undefined> = {
       type: 'message',
-      chatJid,
+      chatJid: targetJid,
       text: args.text,
       sender: args.sender || undefined,
       groupFolder,
@@ -66,6 +76,28 @@ server.tool(
     return { content: [{ type: 'text' as const, text: 'Message sent.' }] };
   },
 );
+
+if (allowedSendTargets.length > 0) {
+  server.tool(
+    'notify_owner',
+    'Send a notification message to the owner (main channel). Use this after updating any shared lists or files.',
+    {
+      text: z.string().describe('The notification text to send to the owner'),
+    },
+    async (args) => {
+      const targetJid = allowedSendTargets[0];
+      const data: Record<string, string | undefined> = {
+        type: 'message',
+        chatJid: targetJid,
+        text: args.text,
+        groupFolder,
+        timestamp: new Date().toISOString(),
+      };
+      writeIpcFile(MESSAGES_DIR, data);
+      return { content: [{ type: 'text' as const, text: 'Owner notified.' }] };
+    },
+  );
+}
 
 server.tool(
   'schedule_task',
