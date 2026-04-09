@@ -60,11 +60,22 @@ export const MAX_MESSAGES_PER_PROMPT = Math.max(
   parseInt(process.env.MAX_MESSAGES_PER_PROMPT || '10', 10) || 10,
 );
 export const IPC_POLL_INTERVAL = 1000;
-export const IDLE_TIMEOUT = parseInt(process.env.IDLE_TIMEOUT || envConfig.IDLE_TIMEOUT || '1800000', 10); // 30min default — how long to keep container alive after last result
+export const IDLE_TIMEOUT = parseInt(
+  process.env.IDLE_TIMEOUT || envConfig.IDLE_TIMEOUT || '1800000',
+  10,
+); // 30min default — how long to keep container alive after last result
 export const MAX_CONCURRENT_CONTAINERS = Math.max(
   1,
   parseInt(process.env.MAX_CONCURRENT_CONTAINERS || '5', 10) || 5,
 );
+
+// Ollama / local LLM backend
+export const AGENT_BACKEND: 'claude' | 'ollama' =
+  (process.env.AGENT_BACKEND as 'claude' | 'ollama') || 'claude';
+export const OLLAMA_URL =
+  process.env.OLLAMA_URL || 'http://localhost:11434';
+export const OLLAMA_MODEL =
+  process.env.OLLAMA_MODEL || 'qwen2.5:7b';
 
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

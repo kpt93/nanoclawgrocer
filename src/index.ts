@@ -4,6 +4,7 @@ import path from 'path';
 import { OneCLI } from '@onecli-sh/sdk';
 
 import {
+  AGENT_BACKEND,
   ASSISTANT_NAME,
   DEFAULT_TRIGGER,
   getTriggerPattern,
@@ -25,6 +26,7 @@ import {
   writeGroupsSnapshot,
   writeTasksSnapshot,
 } from './container-runner.js';
+import { runOllamaAgent } from './ollama-runner.js';
 import {
   cleanupOrphans,
   ensureContainerRuntimeRunning,
@@ -381,8 +383,11 @@ async function runAgent(
       }
     : undefined;
 
+  const agentRunner =
+    AGENT_BACKEND === 'ollama' ? runOllamaAgent : runContainerAgent;
+
   try {
-    const output = await runContainerAgent(
+    const output = await agentRunner(
       group,
       {
         prompt,
@@ -564,6 +569,10 @@ function recoverPendingMessages(): void {
 }
 
 function ensureContainerSystemRunning(): void {
+  if (AGENT_BACKEND === 'ollama') {
+    logger.info('Ollama backend — skipping container runtime check');
+    return;
+  }
   ensureContainerRuntimeRunning();
   cleanupOrphans();
 }
